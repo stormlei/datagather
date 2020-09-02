@@ -151,7 +151,7 @@ public class DataGatherActivity extends AppCompatActivity {
                 HoldDevice holdDevice = mAdapter.getItem(position);
                 switch (view.getId()){
                     case R.id.llQrCode:
-                        showQrCode(holdDevice.getSn());
+                        showQrCode(holdDevice.getSn(), holdDevice.getName());
                         break;
                     case R.id.llEdit:
                         startActivity(new Intent(DataGatherActivity.this, AddHoldDeviceActivity.class)
@@ -200,7 +200,7 @@ public class DataGatherActivity extends AppCompatActivity {
 
     }
 
-    private void showQrCode(String sn) {
+    private void showQrCode(String sn, String name) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
         new PromptDialog.Builder(DataGatherActivity.this)
                 .setTitle("设备二维码")
@@ -213,6 +213,8 @@ public class DataGatherActivity extends AppCompatActivity {
 
         JSONObject jsonObj = new JSONObject();
         jsonObj.put("dataId", sn);
+        jsonObj.put("type", "验光仪");
+        jsonObj.put("name", name);
         String txtStr = jsonObj.toJSONString();
         LogUtils.e("qrcode-----------"+txtStr);
         Bitmap qrBitmap = CodeUtils.createImage(txtStr, 300, 300, null);
@@ -463,6 +465,7 @@ public class DataGatherActivity extends AppCompatActivity {
     };
 
     private void stopTimer(String sn){
+        LogUtils.e("-------"+myTimeTaskMap);
         MyTimeTask task = myTimeTaskMap.get(sn);
         if (task != null) task.stop();
     }
