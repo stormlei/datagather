@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F3F7FD">
+
+    <include layout="@layout/common_topbar"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/color_ff"
+        android:layout_marginTop="8dp"
+        android:padding="16dp"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_26"
+                android:textSize="15sp"
+                android:text="设备类型"/>
+            <RadioGroup
+                android:id="@+id/rgDeviceType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:orientation="vertical">
+                <RadioButton
+                    android:id="@+id/rbWel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:background="@drawable/rb_selector"
+                    android:textColor="@color/rb_color"
+                    android:textSize="15sp"
+                    android:button="@null"
+                    android:text="维伦手持筛查仪"/>
+                <RadioButton
+                    android:id="@+id/rbSuo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/rb_selector"
+                    android:textColor="@color/rb_color"
+                    android:textSize="15sp"
+                    android:button="@null"
+                    android:text="索维手持筛查仪"/>
+            </RadioGroup>
+        </LinearLayout>
+
+        <View
+            android:layout_width="wrap_content"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/color_f0"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_26"
+                android:textSize="15sp"
+                android:text="设备名称"/>
+            <EditText
+                android:id="@+id/edtName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="32dp"
+                android:background="@null"
+                android:textSize="15sp"
+                android:hint="请填写设备名称"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="wrap_content"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/color_f0"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_26"
+                android:textSize="15sp"
+                android:text="设备IP    "/>
+            <EditText
+                android:id="@+id/edtIp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="32dp"
+                android:textSize="15sp"
+                android:background="@null"
+                android:hint="请填写设备WIFI获取的IP"/>
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/tvSave"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="48dp"
+        android:textSize="15sp"
+        android:textColor="@color/color_ff"
+        android:background="@color/color_cb7"
+        android:gravity="center"
+        android:text="保存"/>
+
+</LinearLayout>

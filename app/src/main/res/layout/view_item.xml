@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical">
+        <EditText
+            android:id="@+id/ipEdt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="请输入手持验光仪ip地址如 192.168.0.1" />
+
+        <Button
+            android:id="@+id/dataListenBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="打开数据监听" />
+
+        <Button
+            android:id="@+id/btnScanQrCode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="查看二维码" />
+
+        <Button
+            android:id="@+id/btnDel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="删除" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/dataTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="0dp"
+        android:text="" />
+
+
+</LinearLayout>
