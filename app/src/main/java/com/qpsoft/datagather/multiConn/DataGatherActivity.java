@@ -14,6 +14,7 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,6 +30,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+import com.kyleduo.switchbutton.SwitchButton;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.FileCallback;
 import com.lzy.okgo.callback.StringCallback;
@@ -39,7 +41,6 @@ import com.qpsoft.datagather.R;
 import com.qpsoft.datagather.RefData;
 import com.qpsoft.datagather.oldRef.RefractionData;
 import com.qpsoft.datagather.oldRef.RefractionMessageEvent;
-import com.suke.widget.SwitchButton;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -101,12 +102,12 @@ public class DataGatherActivity extends AppCompatActivity {
                     ivConnStatus.setImageResource(R.drawable.icon_unlink);
                 }
                 if (item.isOpen()) {
-                    sbStatus.setChecked(true);
+                    sbStatus.setCheckedNoEvent(true);
                     if (item.getDeviceType() == HoldDeviceType.Wel) {
                         getAuth(item.getIp(), item.getSn());
                     }
                 } else {
-                    sbStatus.setChecked(false);
+                    sbStatus.setCheckedNoEvent(false);
                     if (item.getDeviceType() == HoldDeviceType.Wel) {
                         stopTimer(item.getSn());
                     }
@@ -116,9 +117,9 @@ public class DataGatherActivity extends AppCompatActivity {
                 }
                 helper.addOnClickListener(R.id.llQrCode);
                 helper.addOnClickListener(R.id.llEdit);
-                sbStatus.setOnCheckedChangeListener(new SwitchButton.OnCheckedChangeListener() {
+                sbStatus.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
-                    public void onCheckedChanged(SwitchButton view, boolean isChecked) {
+                    public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
                         if (isChecked) {
                             if (item.getDeviceType() == HoldDeviceType.Wel) {
                                 getAuth(item.getIp(), item.getSn());
@@ -180,13 +181,11 @@ public class DataGatherActivity extends AppCompatActivity {
                             public void onClick(Dialog dialog, int which) {
                                 dialog.dismiss();
                                 DataGatherUtils.delHoldDevice(mAdapter.getItem(position));
-                                stopTimer(mAdapter.getItem(position).getSn());
-                                helperMap.clear();
-                                itemMap.clear();
+                                stopAllTimer();
                                 mAdapter.setNewData(DataGatherUtils.getHoldDeviceList());
                             }
                         }).show();
-                return false;
+                return true;
             }
         });
 
@@ -266,9 +265,12 @@ public class DataGatherActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        stopAllTimer();
     }
 
     private void getAuth(final String deviceIp, final String sn) {
+        LogUtils.e("----------ss3422222");
         OkGo.<String>get("https://"+deviceIp)
                 .tag(this)
                 .execute(new StringCallback() {
@@ -319,6 +321,7 @@ public class DataGatherActivity extends AppCompatActivity {
                     @Override
                     public void onError(Response<String> response) {
                         super.onError(response);
+                        authMap.put(sn, "333333");
                         setTimer(sn);
                     }
                 });
@@ -467,7 +470,14 @@ public class DataGatherActivity extends AppCompatActivity {
     private void stopTimer(String sn){
         LogUtils.e("-------"+myTimeTaskMap);
         MyTimeTask task = myTimeTaskMap.get(sn);
+        LogUtils.e("+++++++"+task);
         if (task != null) task.stop();
+    }
+
+    private void stopAllTimer(){
+        for (String key : myTimeTaskMap.keySet()) {
+            stopTimer(key);
+        }
     }
 
 

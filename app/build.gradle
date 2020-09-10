@@ -36,5 +36,5 @@ dependencies {
     implementation 'cn.yipianfengye.android:zxing-library:2.2'
     implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.50'
     implementation project(path: ':PromptDialog')
-    compile 'com.github.zcweng:switch-button:0.0.3@aar'
+    implementation 'com.kyleduo.switchbutton:library:2.0.2'
 }
