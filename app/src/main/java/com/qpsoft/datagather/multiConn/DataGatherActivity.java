@@ -321,8 +321,6 @@ public class DataGatherActivity extends AppCompatActivity {
                     @Override
                     public void onError(Response<String> response) {
                         super.onError(response);
-                        authMap.put(sn, "333333");
-                        setTimer(sn);
                     }
                 });
 

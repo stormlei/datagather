@@ -34,7 +34,7 @@ public class DB2Manager {
      */
     private void openDB() {
         if (mDB == null || !mDB.isOpen())
-            mDB = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READWRITE);
+            mDB = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.NO_LOCALIZED_COLLATORS|SQLiteDatabase.CREATE_IF_NECESSARY|SQLiteDatabase.OPEN_READWRITE);
     }
 
 
