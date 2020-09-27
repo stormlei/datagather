@@ -23,6 +23,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.blankj.utilcode.util.CacheDiskStaticUtils;
 import com.blankj.utilcode.util.EncryptUtils;
 import com.blankj.utilcode.util.LogUtils;
+import com.blankj.utilcode.util.NetworkUtils;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.koushikdutta.async.AsyncServer;
@@ -68,6 +69,8 @@ public class DataGatherActivity extends AppCompatActivity {
     private BaseQuickAdapter<HoldDevice, BaseViewHolder> mAdapter;
 
     private MultiServer socketServer;
+
+    private int listenPort = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,7 +155,7 @@ public class DataGatherActivity extends AppCompatActivity {
                 HoldDevice holdDevice = mAdapter.getItem(position);
                 switch (view.getId()){
                     case R.id.llQrCode:
-                        showQrCode(holdDevice.getSn(), holdDevice.getName());
+                        showQrCode(holdDevice.getSn(), holdDevice.getName(), holdDevice.getDeviceType());
                         break;
                     case R.id.llEdit:
                         startActivity(new Intent(DataGatherActivity.this, AddHoldDeviceActivity.class)
@@ -197,9 +200,11 @@ public class DataGatherActivity extends AppCompatActivity {
             }
         });
 
+
+        openHttpServer();
     }
 
-    private void showQrCode(String sn, String name) {
+    private void showQrCode(String sn, String name, HoldDeviceType deviceType) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
         new PromptDialog.Builder(DataGatherActivity.this)
                 .setTitle("设备二维码")
@@ -214,6 +219,11 @@ public class DataGatherActivity extends AppCompatActivity {
         jsonObj.put("dataId", sn);
         jsonObj.put("type", "验光仪");
         jsonObj.put("name", name);
+        if (deviceType == HoldDeviceType.Wel) {
+            jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/refWelData?dataId="+sn);
+        } else if (deviceType == HoldDeviceType.Suo) {
+            jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/refSuoData?dataId="+sn);
+        }
         String txtStr = jsonObj.toJSONString();
         LogUtils.e("qrcode-----------"+txtStr);
         Bitmap qrBitmap = CodeUtils.createImage(txtStr, 300, 300, null);
@@ -225,11 +235,11 @@ public class DataGatherActivity extends AppCompatActivity {
         tvSn.setText(snResult);
     }
 
-
+    private RefractionData refSuoData;
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(RefractionMessageEvent event) {
         String sn = event.getSn();
-        RefractionData refSuoData = event.getRefractionData();
+        refSuoData = event.getRefractionData();
 
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
@@ -411,17 +421,29 @@ public class DataGatherActivity extends AppCompatActivity {
     private AsyncHttpServer server = new AsyncHttpServer();
     private AsyncServer mAsyncServer = new AsyncServer();
 
-    private void openHttpServer(int listenPort) {
+    private void openHttpServer() {
         server.get("/refWelData", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                String sn = request.getQuery().getString("sn");
+                String sn = request.getQuery().getString("dataId");
                 RefData refWelData = refDataMap.get(sn);
                 LogUtils.e("vvvvv-------", refWelData);
                 response.send(JSON.toJSONString(refWelData));
                 //FileUtils.delete(dbPath);
                 CacheDiskStaticUtils.put(sn, "1");
                 refDataMap.remove(sn);
+                //dataTv.setText("");
+            }
+        });
+        server.get("/refSuoData", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                //String sn = request.getQuery().getString("dataId");
+                //RefData refSuoData = refDataMap.get(sn);
+                LogUtils.e("sssss-------", refSuoData);
+                response.send(JSON.toJSONString(refSuoData));
+                //FileUtils.delete(dbPath);
+                refSuoData = null;
                 //dataTv.setText("");
             }
         });
