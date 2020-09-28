@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
 
+import cat.ereza.customactivityoncrash.config.CaocConfig;
 import okhttp3.OkHttpClient;
 
 public class App extends Application {
@@ -43,6 +44,10 @@ public class App extends Application {
         OkGo.getInstance().init(this)
                 .setOkHttpClient(builder.build())
                 .setRetryCount(0);
+
+
+        //crash
+        CaocConfig.Builder.create().apply();
     }
 
     private class SafeHostnameVerifier implements HostnameVerifier {

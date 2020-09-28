@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:background="#F3F7FD">
 
@@ -49,6 +50,16 @@
                     android:textSize="15sp"
                     android:button="@null"
                     android:text="索维手持筛查仪"/>
+                <RadioButton
+                    android:id="@+id/rbXingKang"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/rb_selector"
+                    android:textColor="@color/rb_color"
+                    android:textSize="15sp"
+                    android:button="@null"
+                    android:text="星康视力表"/>
             </RadioGroup>
         </LinearLayout>
 
@@ -102,6 +113,38 @@
                 android:textSize="15sp"
                 android:background="@null"
                 android:hint="请填写设备WIFI获取的IP"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="wrap_content"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/color_f0"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_26"
+                android:textSize="15sp"
+                android:text="同步到云端"/>
+            <com.kyleduo.switchbutton.SwitchButton
+                android:id="@+id/sbCloudStatus"
+                style="@style/SwitchButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:kswBackDrawable="@drawable/ios_back_drawable"
+                app:kswThumbDrawable="@drawable/ios_thumb_selector"
+                app:kswThumbMarginBottom="-8dp"
+                app:kswThumbMarginLeft="-5dp"
+                app:kswThumbMarginRight="-5dp"
+                app:kswThumbMarginTop="-2.5dp"
+                app:kswThumbRangeRatio="1.4"
+                />
         </LinearLayout>
     </LinearLayout>
 

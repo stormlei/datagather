@@ -43,6 +43,10 @@ public class DataGatherUtils {
                         if (saveHoldDevice.getDeviceType() == holdDevice.getDeviceType() && saveHoldDevice.getIp().equals(holdDevice.getIp())) {
                             return false;
                         }
+                    } else if (holdDevice.getDeviceType() == HoldDeviceType.EyeChart) {
+                        if (saveHoldDevice.getDeviceType() == holdDevice.getDeviceType()) {
+                            return false;
+                        }
                     }
                 }
                 saveJsonArray.put(jsonObj);

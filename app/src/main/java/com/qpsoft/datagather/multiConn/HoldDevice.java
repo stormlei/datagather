@@ -11,6 +11,7 @@ public class HoldDevice implements Serializable {
     private String sn;
     private boolean connStatus;
     private boolean open = true;
+    private boolean cloud;
 
     public boolean isSsl() {
         return ssl;
@@ -76,6 +77,14 @@ public class HoldDevice implements Serializable {
         this.open = open;
     }
 
+    public boolean isCloud() {
+        return cloud;
+    }
+
+    public void setCloud(boolean cloud) {
+        this.cloud = cloud;
+    }
+
     @Override
     public String toString() {
         return "HoldDevice{" +
@@ -87,6 +96,7 @@ public class HoldDevice implements Serializable {
                 ", sn='" + sn + '\'' +
                 ", connStatus=" + connStatus +
                 ", open=" + open +
+                ", cloud=" + cloud +
                 '}';
     }
 }

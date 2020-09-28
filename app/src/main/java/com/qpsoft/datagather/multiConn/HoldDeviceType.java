@@ -2,7 +2,8 @@ package com.qpsoft.datagather.multiConn;
 
 public enum HoldDeviceType {
     Wel(0),
-    Suo(1);
+    Suo(1),
+    EyeChart(2);
 
     private int value = 0;
     HoldDeviceType(int value) {

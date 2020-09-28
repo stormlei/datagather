@@ -3,6 +3,7 @@ package com.qpsoft.datagather.multiConn;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -10,7 +11,9 @@ import android.widget.TextView;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.blankj.utilcode.util.NetworkUtils;
 import com.blankj.utilcode.util.ToastUtils;
+import com.kyleduo.switchbutton.SwitchButton;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.StringCallback;
 import com.lzy.okgo.model.Response;
@@ -24,14 +27,18 @@ public class AddHoldDeviceActivity extends AppCompatActivity {
     private RadioGroup rgDeviceType;
     private RadioButton rbWel;
     private RadioButton rbSuo;
+    private RadioButton rbXingKang;
     private EditText edtName;
     private EditText edtIp;
+    private SwitchButton sbCloudStatus;
 
     private TextView tvSave;
 
     private HoldDeviceType deviceType = HoldDeviceType.Wel;
 
     private HoldDevice holdDevice;
+
+    private boolean cloud;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +53,10 @@ public class AddHoldDeviceActivity extends AppCompatActivity {
         rgDeviceType = findViewById(R.id.rgDeviceType);
         rbWel = findViewById(R.id.rbWel);
         rbSuo = findViewById(R.id.rbSuo);
+        rbXingKang = findViewById(R.id.rbXingKang);
         edtName = findViewById(R.id.edtName);
         edtIp = findViewById(R.id.edtIp);
+        sbCloudStatus = findViewById(R.id.sbCloudStatus);
 
         tvSave = findViewById(R.id.tvSave);
 
@@ -56,12 +65,16 @@ public class AddHoldDeviceActivity extends AppCompatActivity {
         if (holdDevice != null) {
             rbWel.setEnabled(false);
             rbSuo.setEnabled(false);
+            rbXingKang.setEnabled(false);
             if (holdDevice.getDeviceType() == HoldDeviceType.Wel) {
                 rbWel.setChecked(true);
                 deviceType = HoldDeviceType.Wel;
             } else if (holdDevice.getDeviceType() == HoldDeviceType.Suo) {
                 rbSuo.setChecked(true);
                 deviceType = HoldDeviceType.Suo;
+            } else if (holdDevice.getDeviceType() == HoldDeviceType.EyeChart) {
+                rbXingKang.setChecked(true);
+                deviceType = HoldDeviceType.EyeChart;
             }
             edtName.setText(holdDevice.getName());
             edtIp.setText(holdDevice.getIp());
@@ -76,11 +89,24 @@ public class AddHoldDeviceActivity extends AppCompatActivity {
                 switch (checkedId) {
                     case R.id.rbWel:
                         deviceType = HoldDeviceType.Wel;
+                        edtIp.setText("");
                         break;
                     case R.id.rbSuo:
                         deviceType = HoldDeviceType.Suo;
+                        edtIp.setText("");
+                        break;
+                    case R.id.rbXingKang:
+                        deviceType = HoldDeviceType.EyeChart;
+                        edtIp.setText(NetworkUtils.getIPAddress(true));
                         break;
                 }
+            }
+        });
+
+        sbCloudStatus.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+                cloud = isChecked;
             }
         });
 
@@ -98,9 +124,13 @@ public class AddHoldDeviceActivity extends AppCompatActivity {
                         holdDevice.setPort(443);
                     } else if (deviceType == HoldDeviceType.Suo) {
                         holdDevice.setSsl(false);
-                        holdDevice.setPort(0);
+                        holdDevice.setPort(80);
+                    } else if (deviceType == HoldDeviceType.EyeChart) {
+                        holdDevice.setSsl(false);
+                        holdDevice.setPort(6000);
                     }
                     holdDevice.setName(edtName.getText().toString().trim());
+                    holdDevice.setCloud(cloud);
 
                     boolean isSuccess = DataGatherUtils.editHoldDevice(holdDevice);
                     if (isSuccess) {
@@ -144,11 +174,15 @@ public class AddHoldDeviceActivity extends AppCompatActivity {
                                     createHoldDevice.setPort(443);
                                 } else if (deviceType == HoldDeviceType.Suo) {
                                     createHoldDevice.setSsl(false);
-                                    createHoldDevice.setPort(0);
+                                    createHoldDevice.setPort(80);
+                                } else if (deviceType == HoldDeviceType.EyeChart) {
+                                    createHoldDevice.setSsl(false);
+                                    createHoldDevice.setPort(6000);
                                 }
                                 createHoldDevice.setName(edtName.getText().toString().trim());
                                 createHoldDevice.setSn(sn);
                                 createHoldDevice.setOpen(true);
+                                createHoldDevice.setCloud(cloud);
 
                                 boolean isSuccess = DataGatherUtils.addHoldDevice(createHoldDevice);
                                 if (isSuccess) {

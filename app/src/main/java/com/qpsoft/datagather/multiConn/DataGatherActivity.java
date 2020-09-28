@@ -20,6 +20,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.CacheDiskStaticUtils;
 import com.blankj.utilcode.util.EncryptUtils;
 import com.blankj.utilcode.util.LogUtils;
@@ -27,6 +28,7 @@ import com.blankj.utilcode.util.NetworkUtils;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -37,6 +39,8 @@ import com.lzy.okgo.callback.FileCallback;
 import com.lzy.okgo.callback.StringCallback;
 import com.lzy.okgo.model.Response;
 import com.qpsoft.datagather.AppConfig;
+import com.qpsoft.datagather.EyeChartData;
+import com.qpsoft.datagather.EyeChartMessageEvent;
 import com.qpsoft.datagather.MyTimeTask;
 import com.qpsoft.datagather.R;
 import com.qpsoft.datagather.RefData;
@@ -69,6 +73,7 @@ public class DataGatherActivity extends AppCompatActivity {
     private BaseQuickAdapter<HoldDevice, BaseViewHolder> mAdapter;
 
     private MultiServer socketServer;
+    private TempServer tempServer;
 
     private int listenPort = 5000;
 
@@ -82,7 +87,7 @@ public class DataGatherActivity extends AppCompatActivity {
         mTvTopbarRight = findViewById(R.id.tvTopbarRight);
 
         mTvTopbarLeft.setVisibility(View.GONE);
-        mTvTopbarTitle.setText("数据采集");
+        mTvTopbarTitle.setText("数据采集V"+ AppUtils.getAppVersionName());
         mTvTopbarRight.setVisibility(View.VISIBLE);
         mTvTopbarRight.setText("添加设备");
 
@@ -90,13 +95,17 @@ public class DataGatherActivity extends AppCompatActivity {
         socketServer = new MultiServer();
         socketServer.init();
 
+        //init eyechart
+        tempServer = new TempServer();
+        tempServer.init();
+
         rvHoldDevice = findViewById(R.id.rvHoldDevice);
         rvHoldDevice.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true));
         rvHoldDevice.setAdapter(mAdapter = new BaseQuickAdapter<HoldDevice, BaseViewHolder>(R.layout.item_datagather) {
             @Override
             protected void convert(@NonNull BaseViewHolder helper, final HoldDevice item) {
                 helper.setText(R.id.tvName, item.getName());
-                helper.setText(R.id.tvIp, "IP："+item.getIp());
+                helper.setText(R.id.tvIp, "IP："+item.getIp()+" Port："+item.getPort());
                 SwitchButton sbStatus = helper.getView(R.id.sbStatus);
                 final ImageView ivConnStatus = helper.getView(R.id.ivConnStatus);
                 if (item.isConnStatus()) {
@@ -116,7 +125,10 @@ public class DataGatherActivity extends AppCompatActivity {
                     }
                 }
                 if(item.getDeviceType() == HoldDeviceType.Suo) {
-                    socketServer.setSn(item.getSn());
+                    socketServer.setSn(item.getSn(), item.isCloud());
+                }
+                if(item.getDeviceType() == HoldDeviceType.EyeChart) {
+                    tempServer.setSn(item.getSn(), item.isCloud());
                 }
                 helper.addOnClickListener(R.id.llQrCode);
                 helper.addOnClickListener(R.id.llEdit);
@@ -127,7 +139,9 @@ public class DataGatherActivity extends AppCompatActivity {
                             if (item.getDeviceType() == HoldDeviceType.Wel) {
                                 getAuth(item.getIp(), item.getSn());
                             } else if(item.getDeviceType() == HoldDeviceType.Suo) {
-                                socketServer.setSn(item.getSn());
+                                socketServer.setSn(item.getSn(), item.isCloud());
+                            } else if(item.getDeviceType() == HoldDeviceType.EyeChart) {
+                                tempServer.setSn(item.getSn(), item.isCloud());
                             }
                         } else {
                             if (item.getDeviceType() == HoldDeviceType.Wel) {
@@ -223,6 +237,8 @@ public class DataGatherActivity extends AppCompatActivity {
             jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/refWelData?dataId="+sn);
         } else if (deviceType == HoldDeviceType.Suo) {
             jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/refSuoData?dataId="+sn);
+        } else if (deviceType == HoldDeviceType.EyeChart) {
+            jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/xingKangChart?dataId="+sn);
         }
         String txtStr = jsonObj.toJSONString();
         LogUtils.e("qrcode-----------"+txtStr);
@@ -245,6 +261,19 @@ public class DataGatherActivity extends AppCompatActivity {
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
         tvData.setVisibility(View.VISIBLE);
         tvData.setText("数据："+refSuoData);
+        ivConnStatus.setImageResource(R.drawable.icon_link);
+    }
+
+    private EyeChartData xkChartData;
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(EyeChartMessageEvent event) {
+        String sn = event.getSn();
+        xkChartData = event.getEyeChartData();
+
+        TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
+        ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
+        tvData.setVisibility(View.VISIBLE);
+        tvData.setText("数据："+xkChartData);
         ivConnStatus.setImageResource(R.drawable.icon_link);
     }
 
@@ -280,7 +309,6 @@ public class DataGatherActivity extends AppCompatActivity {
     }
 
     private void getAuth(final String deviceIp, final String sn) {
-        LogUtils.e("----------ss3422222");
         OkGo.<String>get("https://"+deviceIp)
                 .tag(this)
                 .execute(new StringCallback() {
@@ -351,7 +379,7 @@ public class DataGatherActivity extends AppCompatActivity {
     private void downloadDB(final String sn) {
         String destFileDir = DataGatherActivity.this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
         String destFileName = sn+"_patient.db";
-        OkGo.<File>get("https://"+itemMap.get(sn).getIp()+"/db/patient.db")
+        OkGo.<File>get("https://"+getHoldDevice(sn).getIp()+"/db/patient.db")
                 .tag(this)
                 .headers("Authorization", authMap.get(sn))
                 .execute(new FileCallback(destFileDir, destFileName) {
@@ -368,7 +396,6 @@ public class DataGatherActivity extends AppCompatActivity {
         Log.e("--------", dbPath);
         RefData refWelData = DB2Manager.getInstance(dbPath, sn).queryRefData();
         LogUtils.e("------", refWelData);
-        refDataMap.put(sn, refWelData);
 
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
@@ -376,24 +403,27 @@ public class DataGatherActivity extends AppCompatActivity {
         tvData.setText("数据："+refWelData);
         ivConnStatus.setImageResource(R.drawable.icon_link);
 
+        if (refWelData != null) {
+            refDataMap.put(sn, refWelData);
 
-        if (refWelData.getId() != dataId) {
-            postPortable(sn);
-            dataId = refWelData.getId();
+            if (refWelData.getId() != dataId && getHoldDevice(sn).isCloud()) {
+                postPortable(sn, refWelData);
+                dataId = refWelData.getId();
+            }
         }
     }
 
 
     private int dataId;
     //提交数据到服务器
-    private void postPortable(String sn) {
+    private void postPortable(String sn, RefData refWelData) {
         try {
             long timestamp = System.currentTimeMillis()/1000;
             org.json.JSONObject jsonObj = new org.json.JSONObject();
             jsonObj.put("dataId", sn);
             jsonObj.put("timestamp", timestamp+"");
             jsonObj.put("key", EncryptUtils.encryptMD5ToString(sn+":"+timestamp+":"+AppConfig.KEY).toLowerCase());
-            jsonObj.put("data", JSON.toJSONString(refDataMap.get(sn)));
+            jsonObj.put("data", JSON.toJSONString(refWelData));
 
             OkGo.<String>post(AppConfig.SERVER_URL)
                     .tag(this)
@@ -415,6 +445,9 @@ public class DataGatherActivity extends AppCompatActivity {
     private Map<String, HoldDevice> itemMap = new HashMap<>();
     private int getPos(String sn) {
         return helperMap.get(sn).getLayoutPosition();
+    }
+    private HoldDevice getHoldDevice(String sn) {
+        return itemMap.get(sn);
     }
 
 
@@ -447,6 +480,18 @@ public class DataGatherActivity extends AppCompatActivity {
                 //dataTv.setText("");
             }
         });
+        server.get("/xingKangChart", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                //String sn = request.getQuery().getString("dataId");
+                //RefData refSuoData = refDataMap.get(sn);
+                LogUtils.e("bbbbb-------", xkChartData);
+                response.send(JSON.toJSONString(xkChartData));
+                //FileUtils.delete(dbPath);
+                xkChartData = null;
+                //dataTv.setText("");
+            }
+        });
 
         // listen on port 5000
         server.listen(mAsyncServer, listenPort);
@@ -456,7 +501,7 @@ public class DataGatherActivity extends AppCompatActivity {
     private Map<String, MyTimeTask> myTimeTaskMap = new HashMap<>();
     private static final int TIMER = 999;
     private void setTimer(final String sn){
-        MyTimeTask task = new MyTimeTask(3000, new TimerTask() {
+        MyTimeTask task = new MyTimeTask(5000, new TimerTask() {
             @Override
             public void run() {
                 Message message = new Message();
@@ -518,6 +563,10 @@ public class DataGatherActivity extends AppCompatActivity {
 
         if (socketServer != null) {
             socketServer.close();
+        }
+
+        if (tempServer != null) {
+            tempServer.close();
         }
     }
 

@@ -44,6 +44,7 @@ public class MultiServer {
 
 
     private String sn;
+    private boolean cloud;
 
     public void init() {
         new Thread(new Runnable() {
@@ -68,8 +69,9 @@ public class MultiServer {
 
     }
 
-    public void setSn(String snT) {
+    public void setSn(String snT, boolean isCloud) {
         sn = snT;
+        cloud = isCloud;
     }
 
 
@@ -104,23 +106,25 @@ public class MultiServer {
                     refractionData = SuoerDataProcess.parse(dataList);
                 }
 
-                long timestamp = System.currentTimeMillis()/1000;
-                org.json.JSONObject jsonObj = new org.json.JSONObject();
-                jsonObj.put("dataId", sn);
-                jsonObj.put("timestamp", timestamp+"");
-                jsonObj.put("key", EncryptUtils.encryptMD5ToString(sn+":"+timestamp+":"+ AppConfig.KEY).toLowerCase());
-                jsonObj.put("data", JSON.toJSONString(refractionData));
-                //提交数据到服务器
-                OkGo.<String>post(AppConfig.SERVER_URL)
-                        .tag(this)
-                        .upJson(jsonObj)
-                        .execute(new StringCallback() {
-                            @Override
-                            public void onSuccess(Response<String> response) {
+                if (cloud) {
+                    long timestamp = System.currentTimeMillis()/1000;
+                    org.json.JSONObject jsonObj = new org.json.JSONObject();
+                    jsonObj.put("dataId", sn);
+                    jsonObj.put("timestamp", timestamp+"");
+                    jsonObj.put("key", EncryptUtils.encryptMD5ToString(sn+":"+timestamp+":"+ AppConfig.KEY).toLowerCase());
+                    jsonObj.put("data", JSON.toJSONString(refractionData));
+                    //提交数据到服务器
+                    OkGo.<String>post(AppConfig.SERVER_URL)
+                            .tag(this)
+                            .upJson(jsonObj)
+                            .execute(new StringCallback() {
+                                @Override
+                                public void onSuccess(Response<String> response) {
 
 
-                            }
-                        });
+                                }
+                            });
+                }
                 //RefData refractionData = WelchAllynDataProcess.parse(dataList);
                 //RefData refractionData = SuoerDataProcess.parse(dataList);
                 //System.out.println(refractionData.toString());
