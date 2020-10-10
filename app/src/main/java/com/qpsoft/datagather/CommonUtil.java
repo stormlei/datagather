@@ -25,7 +25,7 @@ public class CommonUtil {
 
     public static void saveBitmap2file(Bitmap bmp, HoldDeviceType deviceType, Context context) {
         //String savePath = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath()+File.separator;
-        String savePath = Environment.getExternalStorageDirectory().getAbsolutePath()+File.separator+"dataGather";
+        String savePath = Environment.getExternalStorageDirectory().getAbsolutePath()+File.separator+"dataGather/";
         String fileName = generateFileName() + ".jpg";
         if (deviceType == HoldDeviceType.Wel) {
             fileName = "维伦.jpg";
