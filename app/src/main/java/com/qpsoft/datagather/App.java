@@ -5,6 +5,7 @@ import android.app.Application;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.https.HttpsUtils;
 import com.lzy.okgo.interceptor.HttpLoggingInterceptor;
+import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -45,6 +46,7 @@ public class App extends Application {
                 .setOkHttpClient(builder.build())
                 .setRetryCount(0);
 
+        ZXingLibrary.initDisplayOpinion(this);
 
         //crash
         CaocConfig.Builder.create().apply();

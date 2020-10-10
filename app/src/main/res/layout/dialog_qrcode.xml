@@ -12,6 +12,19 @@
         android:layout_marginTop="24dp" />
 
     <TextView
+        android:id="@+id/tvDownload"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginLeft="136dp"
+        android:layout_marginRight="136dp"
+        android:gravity="center"
+        android:background="@color/color_cb7"
+        android:textSize="15sp"
+        android:textColor="@color/color_ff"
+        android:text="下载二维码"/>
+
+    <TextView
         android:id="@+id/tvSn"
         android:layout_width="match_parent"
         android:layout_height="40dp"

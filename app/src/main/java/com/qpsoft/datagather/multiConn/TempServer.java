@@ -21,10 +21,7 @@ import org.json.JSONException;
 
 public class TempServer {
 
-    private AsyncHttpServer server = new AsyncHttpServer();
-    private AsyncServer mAsyncServer = new AsyncServer();
-
-    public void init() {
+    public void init(AsyncHttpServer server, AsyncServer mAsyncServer) {
         server.post("/", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
@@ -98,15 +95,5 @@ public class TempServer {
     public void setSn(String snT, boolean isCloud) {
         sn = snT;
         cloud = isCloud;
-    }
-
-    public void close(){
-        if (server != null) {
-            server.stop();
-        }
-
-        if (mAsyncServer != null) {
-            mAsyncServer.stop();
-        }
     }
 }

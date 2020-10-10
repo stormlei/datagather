@@ -1,5 +1,6 @@
 package com.qpsoft.datagather.multiConn;
 
+import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -18,6 +19,7 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.blankj.utilcode.util.AppUtils;
@@ -25,10 +27,10 @@ import com.blankj.utilcode.util.CacheDiskStaticUtils;
 import com.blankj.utilcode.util.EncryptUtils;
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.NetworkUtils;
+import com.blankj.utilcode.util.ToastUtils;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -39,6 +41,7 @@ import com.lzy.okgo.callback.FileCallback;
 import com.lzy.okgo.callback.StringCallback;
 import com.lzy.okgo.model.Response;
 import com.qpsoft.datagather.AppConfig;
+import com.qpsoft.datagather.CommonUtil;
 import com.qpsoft.datagather.EyeChartData;
 import com.qpsoft.datagather.EyeChartMessageEvent;
 import com.qpsoft.datagather.MyTimeTask;
@@ -46,6 +49,7 @@ import com.qpsoft.datagather.R;
 import com.qpsoft.datagather.RefData;
 import com.qpsoft.datagather.oldRef.RefractionData;
 import com.qpsoft.datagather.oldRef.RefractionMessageEvent;
+import com.tbruyelle.rxpermissions2.RxPermissions;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -54,14 +58,25 @@ import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONException;
 
 import java.io.File;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
 import fynn.app.PromptDialog;
+import io.reactivex.functions.Consumer;
 
 
 public class DataGatherActivity extends AppCompatActivity {
@@ -72,15 +87,12 @@ public class DataGatherActivity extends AppCompatActivity {
     private RecyclerView rvHoldDevice;
     private BaseQuickAdapter<HoldDevice, BaseViewHolder> mAdapter;
 
-    private MultiServer socketServer;
-    private TempServer tempServer;
-
-    private int listenPort = 5000;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_datagather);
+
+        EventBus.getDefault().register(this);
 
         mTvTopbarLeft = findViewById(R.id.tvTopbarLeft);
         mTvTopbarTitle = findViewById(R.id.tvTopbarTitle);
@@ -90,14 +102,6 @@ public class DataGatherActivity extends AppCompatActivity {
         mTvTopbarTitle.setText("数据采集V"+ AppUtils.getAppVersionName());
         mTvTopbarRight.setVisibility(View.VISIBLE);
         mTvTopbarRight.setText("添加设备");
-
-        //init suo
-        socketServer = new MultiServer();
-        socketServer.init();
-
-        //init eyechart
-        tempServer = new TempServer();
-        tempServer.init();
 
         rvHoldDevice = findViewById(R.id.rvHoldDevice);
         rvHoldDevice.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true));
@@ -214,8 +218,20 @@ public class DataGatherActivity extends AppCompatActivity {
             }
         });
 
+        startService();
+    }
 
-        openHttpServer();
+    private void startService() {
+        //init suo
+        socketServer = new MultiServer();
+        socketServer.init();
+
+        //init eyechart
+        tempServer = new TempServer();
+        tempServer.init(server, mAsyncServer);
+
+        //openHttpServer();
+        openHttpsServer();
     }
 
     private void showQrCode(String sn, String name, HoldDeviceType deviceType) {
@@ -228,17 +244,25 @@ public class DataGatherActivity extends AppCompatActivity {
 
         ImageView ivQrCode = dialogView.findViewById(R.id.ivQrCode);
         TextView tvSn = dialogView.findViewById(R.id.tvSn);
+        TextView tvDownload = dialogView.findViewById(R.id.tvDownload);
+
+        //String host = "https://device.qpsc365.com:"+listenPortHttps;
+        String host = "https://"+NetworkUtils.getIPAddress(true)+":"+listenPortHttps;
 
         JSONObject jsonObj = new JSONObject();
         jsonObj.put("dataId", sn);
         jsonObj.put("type", "验光仪");
-        jsonObj.put("name", name);
+        jsonObj.put("name", name); 
         if (deviceType == HoldDeviceType.Wel) {
-            jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/refWelData?dataId="+sn);
+            //jsonObj.put("endpoint", "https://"+NetworkUtils.getIPAddress(true)+":"+listenPortHttps+"/refWelData?dataId="+sn);
+            jsonObj.put("endpoint", host+"/refWelData?dataId="+sn);
         } else if (deviceType == HoldDeviceType.Suo) {
-            jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/refSuoData?dataId="+sn);
+            //jsonObj.put("endpoint", "https://"+NetworkUtils.getIPAddress(true)+":"+listenPortHttps+"/refSuoData?dataId="+sn);
+            jsonObj.put("endpoint", host+"/refSuoData?dataId="+sn);
         } else if (deviceType == HoldDeviceType.EyeChart) {
-            jsonObj.put("endpoint", "http://"+NetworkUtils.getIPAddress(true)+":"+listenPort+"/xingKangChart?dataId="+sn);
+            jsonObj.put("type", "视力表");
+            //jsonObj.put("endpoint", "https://"+NetworkUtils.getIPAddress(true)+":"+listenPortHttps+"/xingKangChart?dataId="+sn);
+            jsonObj.put("endpoint", host+"/xingKangChart?dataId="+sn);
         }
         String txtStr = jsonObj.toJSONString();
         LogUtils.e("qrcode-----------"+txtStr);
@@ -249,6 +273,42 @@ public class DataGatherActivity extends AppCompatActivity {
         String regex = "(.{5})";
         String snResult = sn.replaceAll(regex,"$1-");
         tvSn.setText(snResult);
+
+        tvDownload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String host = "https://device.qpsc365.com:"+listenPortHttps;
+                JSONObject jsonObj = new JSONObject();
+                jsonObj.put("dataId", sn);
+                jsonObj.put("type", "验光仪");
+                jsonObj.put("name", name);
+                if (deviceType == HoldDeviceType.Wel) {
+                    jsonObj.put("endpoint", host+"/refWelData?dataId="+sn);
+                } else if (deviceType == HoldDeviceType.Suo) {
+                    jsonObj.put("endpoint", host+"/refSuoData?dataId="+sn);
+                } else if (deviceType == HoldDeviceType.EyeChart) {
+                    jsonObj.put("type", "视力表");
+                    jsonObj.put("endpoint", host+"/xingKangChart?dataId="+sn);
+                }
+                String txtStr = jsonObj.toJSONString();
+                LogUtils.e("qrcode-----------"+txtStr);
+                Bitmap qrBitmap = CodeUtils.createImage(txtStr, 300, 300, null);
+                RxPermissions rxPermissions = new RxPermissions(DataGatherActivity.this);
+                rxPermissions
+                        .request(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE)
+                        .subscribe(new Consumer<Boolean>() {
+                            @Override
+                            public void accept(@NonNull Boolean aBoolean) throws Exception {
+                                if (aBoolean) {
+                                    CommonUtil.saveBitmap2file(qrBitmap, deviceType, DataGatherActivity.this);
+                                }else {
+                                    ToastUtils.showShort("读写权限未打开");
+                                }
+                            }
+                        });
+
+            }
+        });
     }
 
     private RefractionData refSuoData;
@@ -280,13 +340,11 @@ public class DataGatherActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        EventBus.getDefault().register(this);
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        EventBus.getDefault().unregister(this);
     }
 
 
@@ -304,8 +362,7 @@ public class DataGatherActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        stopAllTimer();
+        //stopAllTimer();
     }
 
     private void getAuth(final String deviceIp, final String sn) {
@@ -451,8 +508,14 @@ public class DataGatherActivity extends AppCompatActivity {
     }
 
 
+
+    private MultiServer socketServer;
+    private TempServer tempServer;
+
     private AsyncHttpServer server = new AsyncHttpServer();
     private AsyncServer mAsyncServer = new AsyncServer();
+    private int listenPort = 5000;
+    private int listenPortHttps = 8888;
 
     private void openHttpServer() {
         server.get("/refWelData", new HttpServerRequestCallback() {
@@ -495,6 +558,71 @@ public class DataGatherActivity extends AppCompatActivity {
 
         // listen on port 5000
         server.listen(mAsyncServer, listenPort);
+    }
+
+    private void openHttpsServer() {
+        try {
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(getAssets().open("device.qpsc365.com.jks"), null);
+
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+            kmf.init(ks, "L0xgeOyL".toCharArray());
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(ks);
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+            server.listenSecure(listenPortHttps, sslContext);
+
+
+            server.get("/", new HttpServerRequestCallback() {
+                @Override
+                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                    response.send("test1111");
+                }
+            });
+            server.get("/refWelData", new HttpServerRequestCallback() {
+                @Override
+                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                    String sn = request.getQuery().getString("dataId");
+                    RefData refWelData = refDataMap.get(sn);
+                    LogUtils.e("vvvvv-------", refWelData);
+                    response.send(JSON.toJSONString(refWelData));
+                    //FileUtils.delete(dbPath);
+                    CacheDiskStaticUtils.put(sn, "1");
+                    refDataMap.remove(sn);
+                    //dataTv.setText("");
+                }
+            });
+            server.get("/refSuoData", new HttpServerRequestCallback() {
+                @Override
+                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                    //String sn = request.getQuery().getString("dataId");
+                    //RefData refSuoData = refDataMap.get(sn);
+                    LogUtils.e("sssss-------", refSuoData);
+                    response.send(JSON.toJSONString(refSuoData));
+                    //FileUtils.delete(dbPath);
+                    refSuoData = null;
+                    //dataTv.setText("");
+                }
+            });
+            server.get("/xingKangChart", new HttpServerRequestCallback() {
+                @Override
+                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                    //String sn = request.getQuery().getString("dataId");
+                    //RefData refSuoData = refDataMap.get(sn);
+                    LogUtils.e("bbbbb-------", xkChartData);
+                    response.send(JSON.toJSONString(xkChartData));
+                    //FileUtils.delete(dbPath);
+                    xkChartData = null;
+                    //dataTv.setText("");
+                }
+            });
+        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException | CertificateException
+                | IOException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+
     }
 
 
@@ -565,9 +693,7 @@ public class DataGatherActivity extends AppCompatActivity {
             socketServer.close();
         }
 
-        if (tempServer != null) {
-            tempServer.close();
-        }
+        EventBus.getDefault().unregister(this);
     }
 
 
@@ -603,9 +729,10 @@ public class DataGatherActivity extends AppCompatActivity {
     }
 
 
+
     @Override
     public void onBackPressed() {
-        exitApp();
+        //exitApp();
     }
 
     private long exitTime = 0;

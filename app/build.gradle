@@ -16,6 +16,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions{
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
@@ -29,7 +34,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     compile 'com.github.stealthcopter:AndroidNetworkTools:0.4.5.3'
     compile 'com.lzy.net:okgo:3.0.4'
-    compile 'com.koushikdutta.async:androidasync:2.+'
+    compile 'com.koushikdutta.async:androidasync:3.0.8'
     compile 'com.alibaba:fastjson:1.1.71.android'
     implementation 'com.blankj:utilcode:1.29.0'
     compile 'org.greenrobot:eventbus:3.1.1'
@@ -39,4 +44,10 @@ dependencies {
     implementation 'com.kyleduo.switchbutton:library:2.0.2'
     //crash
     implementation 'cat.ereza:customactivityoncrash:2.2.0'
+
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    compile 'io.reactivex.rxjava2:rxjava:2.0.9'
+    compile 'org.nanohttpd:nanohttpd:2.2.0'
+
+    compile 'com.tbruyelle.rxpermissions2:rxpermissions:0.9.4@aar'
 }
