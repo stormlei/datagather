@@ -3,10 +3,12 @@ package com.qpsoft.datagather.multiConn;
 import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -56,10 +58,9 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONException;
-
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyManagementException;
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
@@ -72,9 +73,8 @@ import java.util.Map;
 import java.util.TimerTask;
 
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 
+import fi.iki.elonen.NanoHTTPD;
 import fynn.app.PromptDialog;
 import io.reactivex.functions.Consumer;
 
@@ -562,68 +562,134 @@ public class DataGatherActivity extends AppCompatActivity {
 
     private void openHttpsServer() {
         try {
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            ks.load(getAssets().open("device.qpsc365.com.jks"), null);
+            AssetManager am = getAssets();
+            //InputStream ins1 = am.open("server.cer");
+            InputStream ins2 = am.open("device.qpsc365.com.jks");
+            MyHttpd myHttpd = new MyHttpd(8888);
 
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
-            kmf.init(ks, "L0xgeOyL".toCharArray());
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(ks);
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(ins2, null);
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-            server.listenSecure(listenPortHttps, sslContext);
+            //读取证书,注意这里的密码必须设置
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, "L0xgeOyL".toCharArray());
 
+            myHttpd.makeSecure(NanoHTTPD.makeSSLSocketFactory(keyStore, keyManagerFactory), null);
+            myHttpd.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
 
-            server.get("/", new HttpServerRequestCallback() {
-                @Override
-                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                    response.send("test1111");
-                }
-            });
-            server.get("/refWelData", new HttpServerRequestCallback() {
-                @Override
-                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                    String sn = request.getQuery().getString("dataId");
-                    RefData refWelData = refDataMap.get(sn);
-                    LogUtils.e("vvvvv-------", refWelData);
-                    response.send(JSON.toJSONString(refWelData));
-                    //FileUtils.delete(dbPath);
-                    CacheDiskStaticUtils.put(sn, "1");
-                    refDataMap.remove(sn);
-                    //dataTv.setText("");
-                }
-            });
-            server.get("/refSuoData", new HttpServerRequestCallback() {
-                @Override
-                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                    //String sn = request.getQuery().getString("dataId");
-                    //RefData refSuoData = refDataMap.get(sn);
-                    LogUtils.e("sssss-------", refSuoData);
-                    response.send(JSON.toJSONString(refSuoData));
-                    //FileUtils.delete(dbPath);
-                    refSuoData = null;
-                    //dataTv.setText("");
-                }
-            });
-            server.get("/xingKangChart", new HttpServerRequestCallback() {
-                @Override
-                public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                    //String sn = request.getQuery().getString("dataId");
-                    //RefData refSuoData = refDataMap.get(sn);
-                    LogUtils.e("bbbbb-------", xkChartData);
-                    response.send(JSON.toJSONString(xkChartData));
-                    //FileUtils.delete(dbPath);
-                    xkChartData = null;
-                    //dataTv.setText("");
-                }
-            });
-        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException | CertificateException
-                | IOException | UnrecoverableKeyException e) {
+        } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException | UnrecoverableKeyException e) {
             e.printStackTrace();
         }
-
+        server.get("/", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                response.send("test");
+            }
+        });
+        server.get("/refWelData", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                String sn = request.getQuery().getString("dataId");
+                RefData refWelData = refDataMap.get(sn);
+                LogUtils.e("vvvvv-------", refWelData);
+                response.send(JSON.toJSONString(refWelData));
+                //FileUtils.delete(dbPath);
+                CacheDiskStaticUtils.put(sn, "1");
+                refDataMap.remove(sn);
+                //dataTv.setText("");
+            }
+        });
+        server.get("/refSuoData", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                //String sn = request.getQuery().getString("dataId");
+                //RefData refSuoData = refDataMap.get(sn);
+                LogUtils.e("sssss-------", refSuoData);
+                response.send (JSON.toJSONString(refSuoData));
+                //FileUtils.delete(dbPath);
+                refSuoData = null;
+                //dataTv.setText("");
+            }
+        });
+        server.get("/xingKangChart", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                //String sn = request.getQuery().getString("dataId");
+                //RefData refSuoData = refDataMap.get(sn);
+                LogUtils.e("bbbbb-------", xkChartData);
+                response.send(JSON.toJSONString(xkChartData));
+                //FileUtils.delete(dbPath);
+                xkChartData = null;
+                //dataTv.setText("");
+            }
+        });
     }
+
+    class MyHttpd extends NanoHTTPD {
+
+        public MyHttpd(int port) {
+            super(port);
+        }
+
+        public MyHttpd(String hostname, int port) {
+            super(hostname, port);
+        }
+
+        @Override
+        public Response serve(IHTTPSession session) {
+            LogUtils.e("--------"+session.getUri());
+            if ("/refWelData".equals(session.getUri())) {
+                String sn = session.getParms().get("dataId");
+                RefData refWelData = refDataMap.get(sn);
+                LogUtils.e("vvvvv-------", refWelData);
+                //response.send(JSON.toJSONString(refWelData));
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        CacheDiskStaticUtils.put(sn, "1");
+                        refDataMap.remove(sn);
+                    }
+                }, 500);
+                return NanoHTTPD.newFixedLengthResponse(JSON.toJSONString(refWelData));
+                //FileUtils.delete(dbPath);
+
+                //dataTv.setText("");
+            } else if ("/refSuoData".equals(session.getUri())) {
+                //String sn = request.getQuery().getString("dataId");
+                //RefData refSuoData = refDataMap.get(sn);
+                LogUtils.e("sssss-------", refSuoData);
+                //response.send(JSON.toJSONString(refSuoData));
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        refSuoData = null;
+                    }
+                }, 500);
+                return NanoHTTPD.newFixedLengthResponse(JSON.toJSONString(refSuoData));
+                //FileUtils.delete(dbPath);
+                //dataTv.setText("");
+            } else if ("/xingKangChart".equals(session.getUri())) {
+                //String sn = request.getQuery().getString("dataId");
+                //RefData refSuoData = refDataMap.get(sn);
+                LogUtils.e("bbbbb-------", xkChartData);
+                //response.send(JSON.toJSONString(xkChartData));
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        xkChartData = null;
+                    }
+                }, 500);
+                return NanoHTTPD.newFixedLengthResponse(JSON.toJSONString(xkChartData));
+                //FileUtils.delete(dbPath);
+                //dataTv.setText("");
+            } else if ("/".equals(session.getUri())) {
+                return newFixedLengthResponse("test");
+            } else {
+                return newFixedLengthResponse(null);
+            }
+        }
+    }
+
 
 
     private Map<String, MyTimeTask> myTimeTaskMap = new HashMap<>();

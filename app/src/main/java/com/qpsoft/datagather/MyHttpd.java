@@ -1,5 +1,7 @@
 package com.qpsoft.datagather;
 
+import com.blankj.utilcode.util.LogUtils;
+
 import java.util.Map;
 
 import fi.iki.elonen.NanoHTTPD;
@@ -24,6 +26,8 @@ public class MyHttpd extends NanoHTTPD {
 //            msg += "<p>Hello, " + parms.get("username") + "!</p>";
 //        }
 //        return newFixedLengthResponse( msg + "</body></html>\n" );
+
+        LogUtils.e("-------"+session.getUri());
         return newFixedLengthResponse("hello");
     }
 }
