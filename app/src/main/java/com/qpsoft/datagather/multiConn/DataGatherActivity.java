@@ -328,7 +328,11 @@ public class DataGatherActivity extends AppCompatActivity {
         String sn = event.getSn();
         refSuoData = event.getRefractionData();
         //send wxa
-        if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(refSuoData), DataGatherActivity.this);
+        JSONObject jsonObj = new JSONObject();
+        jsonObj.put("type", "验光仪");
+        jsonObj.put("name", getHoldDevice(sn) != null ? getHoldDevice(sn).getName() : "");
+        jsonObj.put("data", refSuoData);
+        if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(jsonObj), DataGatherActivity.this);
 
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
@@ -343,7 +347,11 @@ public class DataGatherActivity extends AppCompatActivity {
         String sn = event.getSn();
         xkChartData = event.getEyeChartData();
         //send wxa
-        if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(xkChartData), DataGatherActivity.this);
+        JSONObject jsonObj = new JSONObject();
+        jsonObj.put("type", "视力表");
+        jsonObj.put("name", getHoldDevice(sn) != null ? getHoldDevice(sn).getName() : "");
+        jsonObj.put("data", xkChartData);
+        if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(jsonObj), DataGatherActivity.this);
 
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
@@ -473,7 +481,11 @@ public class DataGatherActivity extends AppCompatActivity {
 
         if (refWelData != null && refWelData.getId() != cId) {
             //send wxa
-            if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(refWelData), DataGatherActivity.this);
+            JSONObject jsonObj = new JSONObject();
+            jsonObj.put("type", "验光仪");
+            jsonObj.put("name", getHoldDevice(sn) != null ? getHoldDevice(sn).getName() : "");
+            jsonObj.put("data", refWelData);
+            if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(jsonObj), DataGatherActivity.this);
             cId = refWelData.getId();
         }
 
