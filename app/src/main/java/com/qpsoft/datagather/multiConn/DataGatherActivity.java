@@ -21,7 +21,6 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.blankj.utilcode.util.ActivityUtils;
@@ -35,9 +34,6 @@ import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
-import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
-import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
-import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 import com.kyleduo.switchbutton.SwitchButton;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.FileCallback;
@@ -48,13 +44,14 @@ import com.qpsoft.datagather.CommonUtil;
 import com.qpsoft.datagather.EyeChartData;
 import com.qpsoft.datagather.EyeChartMessageEvent;
 import com.qpsoft.datagather.MyTimeTask;
+import com.qpsoft.datagather.ProviderMessageEvent;
+import com.qpsoft.datagather.ProviderUtil;
 import com.qpsoft.datagather.R;
 import com.qpsoft.datagather.RefData;
 import com.qpsoft.datagather.oldRef.RefractionData;
 import com.qpsoft.datagather.oldRef.RefractionMessageEvent;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 import com.uuzuche.lib_zxing.activity.CodeUtils;
-
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -163,6 +160,7 @@ public class DataGatherActivity extends AppCompatActivity {
                     }
                 });
 
+
                 helperMap.put(item.getSn(), helper);
                 itemMap.put(item.getSn(), item);
             }
@@ -204,6 +202,8 @@ public class DataGatherActivity extends AppCompatActivity {
                                 dialog.dismiss();
                                 DataGatherUtils.delHoldDevice(mAdapter.getItem(position));
                                 stopAllTimer();
+                                helperMap.clear();
+                                itemMap.clear();
                                 mAdapter.setNewData(DataGatherUtils.getHoldDeviceList());
                             }
                         }).show();
@@ -232,7 +232,7 @@ public class DataGatherActivity extends AppCompatActivity {
         tempServer.init(server, mAsyncServer);
 
         openHttpServer();
-        openHttpsServer();
+        //openHttpsServer();
     }
 
     private void showQrCode(String sn, String name, HoldDeviceType deviceType) {
@@ -312,11 +312,23 @@ public class DataGatherActivity extends AppCompatActivity {
         });
     }
 
+    private String eventId;
+    private String eventT;
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(ProviderMessageEvent event) {
+        LogUtils.e("---------"+event.getEventId());
+        LogUtils.e("---------"+event.getEvent());
+        eventId = event.getEventId();
+        eventT = event.getEvent();
+    }
+
     private RefractionData refSuoData;
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(RefractionMessageEvent event) {
         String sn = event.getSn();
         refSuoData = event.getRefractionData();
+        //send wxa
+        if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(refSuoData), DataGatherActivity.this);
 
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
@@ -330,6 +342,8 @@ public class DataGatherActivity extends AppCompatActivity {
     public void onMessageEvent(EyeChartMessageEvent event) {
         String sn = event.getSn();
         xkChartData = event.getEyeChartData();
+        //send wxa
+        if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(xkChartData), DataGatherActivity.this);
 
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
@@ -457,6 +471,12 @@ public class DataGatherActivity extends AppCompatActivity {
         RefData refWelData = DB2Manager.getInstance(dbPath, sn).queryRefData();
         LogUtils.e("------", refWelData);
 
+        if (refWelData != null && refWelData.getId() != cId) {
+            //send wxa
+            if (eventT != null) ProviderUtil.INSTANCE.sendData(eventId, eventT, JSON.toJSONString(refWelData), DataGatherActivity.this);
+            cId = refWelData.getId();
+        }
+
         TextView tvData = (TextView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.tvData);
         ImageView ivConnStatus = (ImageView) mAdapter.getViewByPosition(rvHoldDevice, getPos(sn), R.id.ivConnStatus);
         tvData.setVisibility(View.VISIBLE);
@@ -475,6 +495,7 @@ public class DataGatherActivity extends AppCompatActivity {
 
 
     private int dataId;
+    private int cId;
     //提交数据到服务器
     private void postPortable(String sn, RefData refWelData) {
         try {
@@ -504,7 +525,7 @@ public class DataGatherActivity extends AppCompatActivity {
     private Map<String, BaseViewHolder> helperMap = new HashMap<>();
     private Map<String, HoldDevice> itemMap = new HashMap<>();
     private int getPos(String sn) {
-        return helperMap.get(sn).getLayoutPosition();
+        return helperMap.get(sn) != null ? helperMap.get(sn).getLayoutPosition() : 0;
     }
     private HoldDevice getHoldDevice(String sn) {
         return itemMap.get(sn);

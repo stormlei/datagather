@@ -40,6 +40,12 @@
             android:exported="true"
             android:enabled="true"
             android:name=".service.HttpService"/>
+
+        <provider
+            android:authorities="com.tencent.wmpf.cli.provider"
+            android:name=".contentprovider.InvokeChannelContentProvider"
+            android:exported="true"/>
+
     </application>
 
 </manifest>
